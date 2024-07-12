@@ -1,6 +1,7 @@
 package com.dc.ufscar.compiladores.jander.gerador;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import org.antlr.v4.runtime.Token;
 
@@ -16,7 +17,17 @@ import com.dc.ufscar.compiladores.jander.gerador.TabelaDeSimbolos.TipoJander;
 public class JanderSemanticoUtils {
     public static List<String> errosSemanticos = new ArrayList<>();
     public static List<String> nomeVarAtrib = new ArrayList<>();
+    public static HashMap<TipoJander, String[]> tipoMap = new HashMap<TipoJander, String[]>();
 
+
+    public static String[] getTipoC(TipoJander tipo) {
+        tipoMap.put(TipoJander.REAL, new String[]{"float","%f"});
+        tipoMap.put(TipoJander.LITERAL,new String[]{"char", "%s"});
+        tipoMap.put(TipoJander.LOGICO,new String[]{"int","%d"});
+        tipoMap.put(TipoJander.INTEIRO, new String[]{"int","%d"});
+
+        return tipoMap.get(tipo);
+    }
     public static TipoJander getTipo(String tipo) {
         switch (tipo.replace("^", "").toUpperCase()) {
             case "INTEIRO":
@@ -53,7 +64,6 @@ public class JanderSemanticoUtils {
             TabelaDeSimbolos.TipoJander tipo2) {
         TabelaDeSimbolos.TipoJander aux1 = tipo1;
         TabelaDeSimbolos.TipoJander aux2 = tipo2;
-        System.out.println(tipo1.toString() + tipo2.toString());
         // Talvez refatorar essa condição, vai ser dificil fazer manuntentação dela
         if (aux1 == aux2 ||
                 aux1 == TabelaDeSimbolos.TipoJander.REAL && aux2 == TabelaDeSimbolos.TipoJander.INTEIRO ||
@@ -89,7 +99,6 @@ public class JanderSemanticoUtils {
         TabelaDeSimbolos.TipoJander ret = null;
         for (FatorContext fa : ctx.fator()) {
             TabelaDeSimbolos.TipoJander aux = verificarTipo(tabela, fa);
-            System.out.println("auxTt: " + aux + " retTT " + ret);
             if (ret == null) {
                 ret = aux;
             } else if (aux != TabelaDeSimbolos.TipoJander.INVALIDO && verificarTipoCompativeL(tabela, aux, ret)) {
@@ -139,11 +148,8 @@ public class JanderSemanticoUtils {
             JanderParser.Parcela_unarioContext ctx) {
 
         if (ctx.identificador() != null) {
-            System.out.println("Punario: " + ctx.identificador().getText());
             String nome = ctx.identificador().getText();
             nome = nome.substring(0, nome.indexOf("[") == -1 ? nome.length(): nome.indexOf("["));
-            System.out.println("Punario pos []: " + nome);
-            System.out.println("Punario pos ponto: " + nome);
             // Verifica se é um registro e pega o ultimo atributo(vai ser 1, mas se tivesse registros aninhados, funcionaria mais ou menos assim)
             // Se for um registro entao o tamanho do array vai ser mais de um campo, logo preciso pegar a tabela do registro pra verificar o tipo da variavel deste
             // O problema daqui ocorre devido ao fato de variaveis definidas no parametro da função/procedimentos nao estarem sendo adicionadas na tabela da função
@@ -151,7 +157,6 @@ public class JanderSemanticoUtils {
                 String[] structsAttribs = nome.split(nome.contains(".") ? "\\." : "");
                 nome = structsAttribs[structsAttribs.length - 1];
                 TabelaDeSimbolos tabRegistro = tabela.verificarRegistro(structsAttribs[0]);
-                System.out.println("structsAttribs[0]: " + structsAttribs[0]);
                 tabela = tabRegistro;
             }
             return verificarTipo(tabela, nome);
@@ -195,7 +200,6 @@ public class JanderSemanticoUtils {
             //adicionarErroSemantico(null, "identificador " + nome + " nao declarado");
             return TabelaDeSimbolos.TipoJander.INVALIDO;
         }
-        System.out.println("Nome: " + nome + " existe.");
         return tabela.verificar(nome);
     }
 
