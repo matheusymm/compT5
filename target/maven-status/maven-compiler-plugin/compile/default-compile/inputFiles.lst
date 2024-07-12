@@ -1,0 +1,14 @@
+/home/mymm/comp/compT5/src/main/java/com/dc/ufscar/compiladores/jander/gerador/JanderSemantico.java
+/home/mymm/comp/compT5/target/generated-sources/antlr4/com/dc/ufscar/compiladores/jander/gerador/JanderParser.java
+/home/mymm/comp/compT5/target/generated-sources/antlr4/com/dc/ufscar/compiladores/jander/gerador/JanderListener.java
+/home/mymm/comp/compT5/src/main/java/com/dc/ufscar/compiladores/jander/gerador/Principal.java
+/home/mymm/comp/compT5/target/generated-sources/antlr4/com/dc/ufscar/compiladores/jander/gerador/JanderBaseVisitor.java
+/home/mymm/comp/compT5/target/generated-sources/antlr4/com/dc/ufscar/compiladores/jander/gerador/JanderVisitor.java
+/home/mymm/comp/compT5/src/main/java/com/dc/ufscar/compiladores/jander/gerador/JanderGeradorC.java
+/home/mymm/comp/compT5/src/main/java/com/dc/ufscar/compiladores/jander/gerador/TabelaDeSimbolos.java
+/home/mymm/comp/compT5/target/generated-sources/antlr4/com/dc/ufscar/compiladores/jander/gerador/JanderBaseListener.java
+/home/mymm/comp/compT5/src/main/java/com/dc/ufscar/compiladores/jander/gerador/Escopos.java
+/home/mymm/comp/compT5/src/main/java/com/dc/ufscar/compiladores/jander/gerador/EntradaTabelaDeSimbolos.java
+/home/mymm/comp/compT5/src/main/java/com/dc/ufscar/compiladores/jander/gerador/JanderSemanticoUtils.java
+/home/mymm/comp/compT5/target/generated-sources/antlr4/com/dc/ufscar/compiladores/jander/gerador/JanderLexer.java
+/home/mymm/comp/compT5/src/main/java/com/dc/ufscar/compiladores/jander/gerador/MyCustomErrorListener.java
