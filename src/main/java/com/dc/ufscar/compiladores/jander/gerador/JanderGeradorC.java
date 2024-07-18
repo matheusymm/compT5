@@ -25,6 +25,23 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
     }
 
     @Override
+    public Void visitDeclaracao_local(JanderParser.Declaracao_localContext ctx) {
+        TabelaDeSimbolos tabela = escopos.obterEscopoAtual();
+        
+        if(ctx.const_ != null) {
+            String tipo = ctx.tipo_basico().getText();
+            String nome = ctx.IDENT().getText();
+            String valor = ctx.valor_constante().getText();
+            TipoJander tipoJ = JanderSemanticoUtils.getTipo(tipo);
+            tabela.adicionar(nome, tipoJ);
+            saida.append("#define " + nome + " " + valor + "\n");
+            saida.append(";\n");
+        }
+
+        return super.visitDeclaracao_local(ctx);
+    }
+
+    @Override
     public Void visitCorpo(JanderParser.CorpoContext ctx) {
         saida.append("int main() {\n");
 
@@ -34,10 +51,20 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
     @Override
     public Void visitVariavel(JanderParser.VariavelContext ctx) {
         TabelaDeSimbolos tabela = escopos.obterEscopoAtual();
+        Boolean ehPonteiro = false;
         String tipo = ctx.tipo().getText();
+        if(tipo.contains("^")) {
+            tipo = tipo.substring(tipo.indexOf("^"));
+            ehPonteiro = true;
+        }
+        System.out.println("Tipo: " + tipo);
         TipoJander tipoJ = JanderSemanticoUtils.getTipo(tipo);
         System.out.println("TipoJ: " + tipoJ);
         String tipoC = tipoJ != null ? JanderSemanticoUtils.getTipoC(tipoJ)[0] : null;
+        if(ehPonteiro) {
+            tipoC = tipoC + "*";
+        }
+        System.out.println("TipoC: " + tipoC);
 
         saida.append(tipoC);
         saida.append(" ");
@@ -64,11 +91,14 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
             String nome = ident.getText();
             TipoJander tipo = tabela.verificar(nome);
             String mask = JanderSemanticoUtils.getTipoC(tipo)[1];
-            if (tipo == TipoJander.LITERAL) {
-                saida.append("gets(" + nome + ");\n");
-            } else {
-                saida.append("scanf(\"" + mask + "\", &" + nome + ");\n");
-            }
+
+            // Depois precisa?
+            // if (tipo == TipoJander.LITERAL) {
+            //     saida.append("gets(" + nome + ");\n");
+            // } else {
+            // }
+
+            saida.append("scanf(\"" + mask + "\", &" + nome + ");\n");
         }
 
         return super.visitCmdLeia(ctx);
@@ -84,8 +114,10 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
         saida.append("printf(\"");
         List<String> vars = new ArrayList<String>();
         for (JanderParser.ExpressaoContext exp : ctx.expressao()) {
+            System.out.println(exp.getText());
             TipoJander tipoExp = JanderSemanticoUtils.verificarTipo(tabela, exp);
             if (tipoExp != TipoJander.LITERAL) {
+                System.out.println(tipoExp);
                 String mask = JanderSemanticoUtils.getTipoC(tipoExp)[1];
                 vars.add(exp.getText());
                 saida.append(mask);
@@ -113,7 +145,6 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitCmdAtribuicao(JanderParser.CmdAtribuicaoContext ctx) {
-
         if (ctx.circ != null) {
             saida.append("*");
         }
@@ -149,7 +180,6 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitCmdCaso(JanderParser.CmdCasoContext ctx) {
-
         saida.append("switch(" + ctx.exp_aritmetica().getText() + ") {\n");
         for (var sel : ctx.selecao().item_selecao()) {
             for (var num : sel.constantes().numero_intervalo()) {
@@ -177,6 +207,18 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
         saida.append("}\n");
         return null;
     }
+
+    // @Override
+    // public Void visitCmdPara(JanderParser.CmdParaContext ctx) {
+    //     String nome = ctx.IDENT().getText();
+    //     System.out.println(ctx.exp_aritmetica(0).getText());
+    //     saida.append("for(" + nome + " = " + ctx.exp_aritmetica(0).getText() + "; " + ctx.exp_aritmetica(1).getText() + "; " + ctx.IDENT().getText() + "++) {\n");
+    //     for (var cmd : ctx.cmd()) {
+    //         super.visitCmd(cmd);
+    //     }
+    //     saida.append("}\n");
+    //     return null;
+    // }
 
     // @Override
     // public Void visitCmdEscreva(JanderParser.CmdEscrevaContext ctx) {

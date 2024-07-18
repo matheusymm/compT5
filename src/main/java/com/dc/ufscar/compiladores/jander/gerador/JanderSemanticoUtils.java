@@ -28,6 +28,7 @@ public class JanderSemanticoUtils {
 
         return tipoMap.get(tipo);
     }
+    
     public static TipoJander getTipo(String tipo) {
         switch (tipo.replace("^", "").toUpperCase()) {
             case "INTEIRO":
@@ -268,15 +269,6 @@ public class JanderSemanticoUtils {
         }
         return ret;
     }
-
-    // public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos
-    // tabela, JanderParser.Tipo_estendidoContext ctx) {
-    // if(ctx.tipo_basico_ident() != null) {
-    // return verificarTipo(tabela, ctx.tipo_basico_ident());
-    // } else {
-    // return TabelaDeSimbolos.TipoJander.INVALIDO;
-    // }
-    // }
 
     public static TabelaDeSimbolos.TipoJander verficarTipo(TabelaDeSimbolos tabela,
             JanderParser.Tipo_basico_identContext ctx) {
