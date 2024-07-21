@@ -27,8 +27,8 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
     @Override
     public Void visitDeclaracao_local(JanderParser.Declaracao_localContext ctx) {
         TabelaDeSimbolos tabela = escopos.obterEscopoAtual();
-        
-        if(ctx.const_ != null) {
+
+        if (ctx.const_ != null) {
             String tipo = ctx.tipo_basico().getText();
             String nome = ctx.IDENT().getText();
             String valor = ctx.valor_constante().getText();
@@ -53,21 +53,24 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
         TabelaDeSimbolos tabela = escopos.obterEscopoAtual();
         Boolean ehPonteiro = false;
         String tipo = ctx.tipo().getText();
-        if(tipo.contains("^")) {
+
+        if (tipo.contains("^")) {
             tipo = tipo.substring(tipo.indexOf("^"));
             ehPonteiro = true;
         }
-        System.out.println("Tipo: " + tipo);
         TipoJander tipoJ = JanderSemanticoUtils.getTipo(tipo);
+        System.out.println("Tipo: " + tipo);
         System.out.println("TipoJ: " + tipoJ);
-        String tipoC = tipoJ != null ? JanderSemanticoUtils.getTipoC(tipoJ)[0] : null;
-        if(ehPonteiro) {
+        String tipoC = tipoJ != null && tipoJ != TipoJander.INVALIDO ? JanderSemanticoUtils.getTipoC(tipoJ)[0]
+                : null;
+        if (ehPonteiro) {
             tipoC = tipoC + "*";
         }
         System.out.println("TipoC: " + tipoC);
 
         saida.append(tipoC);
         saida.append(" ");
+
         for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
             String nome = ident.getText();
             saida.append(nome);
@@ -94,7 +97,7 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
 
             // Depois precisa?
             // if (tipo == TipoJander.LITERAL) {
-            //     saida.append("gets(" + nome + ");\n");
+            // saida.append("gets(" + nome + ");\n");
             // } else {
             // }
 
@@ -116,8 +119,8 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
         for (JanderParser.ExpressaoContext exp : ctx.expressao()) {
             System.out.println(exp.getText());
             TipoJander tipoExp = JanderSemanticoUtils.verificarTipo(tabela, exp);
-            if (tipoExp != TipoJander.LITERAL) {
-                System.out.println(tipoExp);
+            if (tipoExp != TipoJander.LITERAL && tipoExp != TipoJander.INVALIDO) {
+                System.out.println(tipoExp.toString());
                 String mask = JanderSemanticoUtils.getTipoC(tipoExp)[1];
                 vars.add(exp.getText());
                 saida.append(mask);
@@ -128,7 +131,7 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
                     vars.add(exp.getText());
                     saida.append(mask);
                 } else
-                    saida.append(exp.getText().replaceAll("\"", ""));
+                    saida.append(exp.getText().replaceAll("\"", "").replaceAll("\\\\", "\\\\n"));
             }
 
         }
@@ -208,81 +211,43 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
         return null;
     }
 
-    // @Override
-    // public Void visitCmdPara(JanderParser.CmdParaContext ctx) {
-    //     String nome = ctx.IDENT().getText();
-    //     System.out.println(ctx.exp_aritmetica(0).getText());
-    //     saida.append("for(" + nome + " = " + ctx.exp_aritmetica(0).getText() + "; " + ctx.exp_aritmetica(1).getText() + "; " + ctx.IDENT().getText() + "++) {\n");
-    //     for (var cmd : ctx.cmd()) {
-    //         super.visitCmd(cmd);
-    //     }
-    //     saida.append("}\n");
-    //     return null;
-    // }
+    @Override
+    public Void visitCmdPara(JanderParser.CmdParaContext ctx) {
+        String nome = ctx.IDENT().getText();
+        System.out.println(ctx.exp_aritmetica(0).getText());
+        saida.append("for(" + nome + " = " + ctx.exp_aritmetica(0).getText() + "; " + nome + "<="
+                + ctx.exp_aritmetica(1).getText()
+                + "; " + ctx.IDENT().getText() + "++) {\n");
+        for (var cmd : ctx.cmd()) {
+            super.visitCmd(cmd);
+        }
+        saida.append("}\n");
+        return null;
+    }
 
-    // @Override
-    // public Void visitCmdEscreva(JanderParser.CmdEscrevaContext ctx) {
-    // TabelaDeSimbolos tabela = escopos.obterEscopoAtual();
-    // saida.append("printf(\"");
-    // List<String> vars = new ArrayList<String>();
-    // cmdEscreva = true;
-    // for(JanderParser.ExpressaoContext exp : ctx.expressao()) {
-    // TipoJander tipoExp = JanderSemanticoUtils.verificarTipo(tabela, exp);
-    // if(tabela.existe(exp.getText())) {
-    // tipoExp = tabela.verificar(exp.getText());
-    // String mask = JanderSemanticoUtils.getTipoC(tipoExp)[1];
-    // vars.add(exp.getText());
+    @Override
+    public Void visitCmdEnquanto(JanderParser.CmdEnquantoContext ctx) {
+        saida.append("while(" + ctx.expressao().getText() + ") {\n");
+        for (var cmd : ctx.cmd()) {
+            super.visitCmd(cmd);
+        }
+        saida.append("}\n");
+        return null;
+    }
 
-    // }
-    // }
-    // var ret = super.visitCmdEscreva(ctx);
-    // saida.append("\",");
-    // for(String var : vars) {
-    // saida.append(var + ",");
-    // }
-    // if(!vars.isEmpty()){
-    // saida.delete(saida.length() - 1, saida.length());
-    // }
-    // saida.append(");\n");
-    // cmdEscreva = false;
-    // return ret;
-    // }
-
-    // @Override
-    // public Void visitParcela_nao_unario(JanderParser.Parcela_nao_unarioContext
-    // ctx) {
-    // TabelaDeSimbolos tabela = escopos.obterEscopoAtual();
-    // if(ctx.identificador() != null) {
-    // String nome = ctx.identificador().getText();
-    // TipoJander tipo = tabela.verificar(nome);
-    // System.out.println("nome?NUnario: "+ nome);
-
-    // saida.append("&" + nome);
-
-    // }
-    // else{
-    // saida.append(ctx.CADEIA().getText().replaceAll("\"", ""));
-    // }
-
-    // return super.visitParcela_nao_unario(ctx);
-    // }
-
-    // @Override
-    // public Void visitParcela_unario(JanderParser.Parcela_unarioContext ctx) {
-    // TabelaDeSimbolos tabela = escopos.obterEscopoAtual();
-    // if(ctx.identificador() != null) {
-    // String nome = ctx.identificador().getText();
-    // TipoJander tipo = tabela.verificar(nome);
-    // String mask = JanderSemanticoUtils.getTipoC(tipo)[1];
-    // if(cmdEscreva){
-    // saida.append(mask);
-    // }else{
-    // saida.append(nome);
-    // }
-    // System.out.println("nome?Unario: "+ nome);
-    // }
-
-    // return super.visitParcela_unario(ctx);
-    // }
+    @Override
+    public Void visitCmdFaca(JanderParser.CmdFacaContext ctx) {
+        saida.append("do {\n");
+        for (var cmd : ctx.cmd()) {
+            super.visitCmd(cmd);
+        }
+        String exp = ctx.expressao().getText().replaceAll("=", "==");
+        exp = exp.replaceAll("<>", "!=");
+        exp = exp.replaceAll("e", "&&");
+        exp = exp.replaceAll("ou", "||");
+        exp = exp.replaceAll("nao", "!");
+        saida.append("} while(" + exp + ");\n");
+        return null;
+    }
 
 }
