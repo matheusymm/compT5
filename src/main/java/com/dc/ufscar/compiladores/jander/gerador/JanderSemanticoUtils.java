@@ -25,6 +25,7 @@ public class JanderSemanticoUtils {
         tipoMap.put(TipoJander.LITERAL,new String[]{"char", "%s"});
         tipoMap.put(TipoJander.LOGICO,new String[]{"int","%d"});
         tipoMap.put(TipoJander.INTEIRO, new String[]{"int","%d"});
+        tipoMap.put(TipoJander.REGISTRO, new String[]{"struct","%d"});
 
         return tipoMap.get(tipo);
     }
@@ -295,6 +296,7 @@ public class JanderSemanticoUtils {
     public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos tabela,
             JanderParser.IdentificadorContext ctx) {
         String nome = ctx.getText();
+        nome = nome.substring(0, nome.indexOf("[") == -1 ? nome.length(): nome.indexOf("["));
         if (!tabela.existe(nome)) {
             adicionarErroSemantico(ctx.getStart(), "identificador " + nome + " nao declarado");
             return TabelaDeSimbolos.TipoJander.INVALIDO;
