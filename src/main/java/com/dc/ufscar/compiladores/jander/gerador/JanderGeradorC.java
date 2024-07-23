@@ -82,7 +82,40 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
             tabela.adicionar(nome, tipoJ);
             saida.append("#define " + nome + " " + valor + "\n");
             saida.append(";\n");
-        } 
+        }else if (ctx.type != null) {
+            saida.append("typedef struct {\n");
+            String nomeVar = ctx.IDENT().getText();
+            String strTipoVar = ctx.tipo().getText();
+            if (strTipoVar.contains("registro")) {
+                tabela.adicionar(nomeVar, TipoJander.REGISTRO);
+                TabelaDeSimbolos tabelaRegistro = new TabelaDeSimbolos();
+                for (var v : ctx.tipo().registro().variavel()) {
+                    String strTipoRegistro = v.tipo().getText();
+                    TipoJander tipoRegistro = JanderSemanticoUtils
+                            .getTipo(strTipoRegistro.startsWith("registro") ? "registro" : strTipoRegistro);
+                    saida.append("\t" + JanderSemanticoUtils.getTipoC(tipoRegistro)[0]);
+                    saida.append(" ");
+                    for (JanderParser.IdentificadorContext ident2 : v.identificador()) {
+                        String nomeRegVar = ident2.getText();
+                        saida.append(nomeRegVar);
+                        if (tipoRegistro == TipoJander.LITERAL) {
+                            saida.append("[" + LITERALSIZE + "]");
+                        }
+                        saida.append(", ");
+                        tabelaRegistro.adicionar(nomeRegVar, tipoRegistro);
+                        
+                    }
+                    saida.delete(saida.length() - 2, saida.length());
+                    saida.append(";\n");
+                }
+                tabela.adicionarRegistro(nomeVar, tabelaRegistro);
+            } else {
+                TipoJander tipoVar = JanderSemanticoUtils.getTipo(strTipoVar);
+                tabela.adicionar(nomeVar, tipoVar);
+                
+            }
+            saida.append("} " + nomeVar + ";\n");
+        }
 
         return super.visitDeclaracao_local(ctx);
     }
@@ -102,34 +135,76 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
         TabelaDeSimbolos tabela = escopos.obterEscopoAtual();
         Boolean ehPonteiro = false;
         String tipo = ctx.tipo().getText();
-
+        boolean registroType = false;
         if (tipo.contains("^")) {
             tipo = tipo.substring(tipo.indexOf("^"));
             ehPonteiro = true;
         }
 
         TipoJander tipoJ = JanderSemanticoUtils.getTipo(tipo.startsWith("registro") ? "registro" : tipo);
-        String tipoC = tipoJ != null && tipoJ != TipoJander.INVALIDO ? JanderSemanticoUtils.getTipoC(tipoJ)[0]
-                : null;
+        if(tipoJ == TipoJander.INVALIDO && tabela.existe(tipo)) {
+            tipoJ = TipoJander.REGISTRO;
+            registroType = true;
+        }
+        String tipoC = tipoJ != null && tipoJ != TipoJander.INVALIDO ? JanderSemanticoUtils.getTipoC(tipoJ)[0] : null;
+        
         if (ehPonteiro) {
             tipoC = tipoC + "*";
         }
-        saida.append("\t" + tipoC);
-        saida.append(" ");
-
+        if(tipoJ != TipoJander.REGISTRO && !registroType){
+            saida.append("\t" + tipoC);
+            saida.append(" ");
+        }
         for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
             String nome = ident.getText();
-            saida.append(nome);
-            if (tipoJ == TipoJander.LITERAL) {
-                saida.append("[" + LITERALSIZE + "]");
-            }
-            saida.append(", ");
             tabela.adicionar(nome.contains("[") ? nome.substring(0, nome.indexOf("[")) : nome, tipoJ);
-        }
-        saida.delete(saida.length() - 2, saida.length());
-        saida.append(";\n");
+            if(tipoJ == TipoJander.REGISTRO) {
+                if(registroType){
+                    TabelaDeSimbolos tabelaRegistro = tabela.verificarRegistro(tipo);
+                    tabela.adicionarRegistro(nome, tabelaRegistro);
+                    saida.append(tipoC + " ");
+                }
+                else{
+                    saida.append("struct {\n");
+                    TabelaDeSimbolos tabelaRegistro = new TabelaDeSimbolos();
+                    for (var v : ctx.tipo().registro().variavel()) {
+                        String strTipoRegistro = v.tipo().getText();
+                        TipoJander tipoRegistro = JanderSemanticoUtils
+                                .getTipo(strTipoRegistro.startsWith("registro") ? "registro" : strTipoRegistro);
+                        saida.append("\t" + JanderSemanticoUtils.getTipoC(tipoRegistro)[0]);
+                        saida.append(" ");
+                        for (JanderParser.IdentificadorContext ident2 : v.identificador()) {
+                            String nomeRegVar = ident2.getText();
+                            saida.append(nomeRegVar);
+                            if (tipoRegistro == TipoJander.LITERAL) {
+                                saida.append("[" + LITERALSIZE + "]");
+                            }
+                            saida.append(", ");
+                            tabelaRegistro.adicionar(nomeRegVar, tipoRegistro);
+                        }
+                        saida.delete(saida.length() - 2, saida.length());
+                        saida.append(";\n");
+                    }
+                    tabela.adicionarRegistro(nome, tabelaRegistro);
 
-        return super.visitVariavel(ctx);
+                    saida.append("} " + nome + ";\n");
+                }
+            }
+            else{
+                saida.append(nome);
+                if (tipoJ == TipoJander.LITERAL) {
+                    saida.append("[" + LITERALSIZE + "]");
+                }
+                saida.append(", ");
+            }
+            
+        }
+        if(tipoJ != TipoJander.REGISTRO){
+            saida.delete(saida.length() - 2, saida.length());
+            saida.append(";\n");
+        }
+
+        return null;
     }
 
     @Override
@@ -163,14 +238,22 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
         saida.append("\tprintf(\"");
         List<String> vars = new ArrayList<String>();
         for (JanderParser.ExpressaoContext exp : ctx.expressao()) {
+            TabelaDeSimbolos tempTabela = tabela;
             TipoJander tipoExp = JanderSemanticoUtils.verificarTipo(tabela, exp);
             if (tipoExp != TipoJander.LITERAL && tipoExp != TipoJander.INVALIDO) {
                 String mask = JanderSemanticoUtils.getTipoC(tipoExp)[1];
                 vars.add(exp.getText());
                 saida.append(mask);
             } else {
-                if (tabela.existe(exp.getText().contains("[") ? exp.getText().substring(0, exp.getText().indexOf("[")) : exp.getText())) {
-                    tipoExp = tabela.verificar(exp.getText());
+                String normalizedName = exp.getText().contains("[") ? exp.getText().substring(0, exp.getText().indexOf("[")) : exp.getText();
+                if(exp.getText().contains(".")){
+                    String[] registro = normalizedName.split("\\.");
+                    tempTabela = tabela.verificarRegistro(registro[0]);
+                    normalizedName = registro[1];
+                    
+                }
+                if (tempTabela.existe(normalizedName)) {
+                    tipoExp = tempTabela.verificar(normalizedName);
                     String mask = JanderSemanticoUtils.getTipoC(tipoExp)[1];
                     vars.add(exp.getText());
                     saida.append(mask);
@@ -195,7 +278,12 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
         if (ctx.circ != null) {
             saida.append("*");
         }
-        saida.append(ctx.identificador().getText() + " = " + ctx.expressao().getText() + ";\n");
+        TipoJander tipo = JanderSemanticoUtils.verificarTipo(escopos.obterEscopoAtual(), ctx.expressao());
+        if(tipo == TipoJander.LITERAL) {
+            saida.append("\tstrcpy(" + ctx.identificador().getText() + ", " + ctx.expressao().getText() + ");\n");
+        } else {
+            saida.append("\t"+ctx.identificador().getText() + " = " + ctx.expressao().getText() + ";\n");
+        }
 
         return super.visitCmdAtribuicao(ctx);
     }

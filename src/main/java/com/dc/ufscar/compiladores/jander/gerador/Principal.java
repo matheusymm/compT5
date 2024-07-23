@@ -13,7 +13,7 @@ import org.antlr.v4.runtime.CharStreams;
 public class Principal {
     public static void main(String[] args) {
         try {
-            CharStream cs = CharStreams.fromFileName(args[0]);
+            CharStream cs = CharStreams.fromFileName("./Entrada/17.registro_tipo_impressao.alg");
             JanderLexer lex = new JanderLexer(cs);
             PrintWriter pw = new PrintWriter("aaa");
             CommonTokenStream tokens = new CommonTokenStream(lex);
@@ -29,7 +29,7 @@ public class Principal {
             if(JanderSemanticoUtils.errosSemanticos.isEmpty()) {
                 JanderGeradorC jgc = new JanderGeradorC();
                 jgc.visitPrograma(arvore);
-                PrintWriter pw2 = new PrintWriter(args[1]);
+                PrintWriter pw2 = new PrintWriter("17.out");
                 pw2.println(jgc.saida.toString());
                 pw2.close();
             }
