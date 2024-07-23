@@ -11,6 +11,7 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
     private String LITERALSIZE = "50";
     boolean cmdEscreva = false;
     boolean ehFuncao = false;
+    boolean decLocal = false;
 
     @Override
     public Void visitPrograma(JanderParser.ProgramaContext ctx) {
@@ -115,9 +116,15 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
                 
             }
             saida.append("} " + nomeVar + ";\n");
+        }else{
+            System.out.println("ctx " + ctx.getText());
+            return visitVariavel(ctx.variavel());
         }
-
-        return super.visitDeclaracao_local(ctx);
+        
+        decLocal = true;
+        var res =  super.visitDeclaracao_local(ctx);
+        decLocal = false;
+        return res;
     }
 
     @Override
@@ -132,6 +139,9 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitVariavel(JanderParser.VariavelContext ctx) {
+        if(decLocal){
+            return null;
+        }
         TabelaDeSimbolos tabela = escopos.obterEscopoAtual();
         Boolean ehPonteiro = false;
         String tipo = ctx.tipo().getText();
@@ -162,7 +172,7 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
                 if(registroType){
                     TabelaDeSimbolos tabelaRegistro = tabela.verificarRegistro(tipo);
                     tabela.adicionarRegistro(nome, tabelaRegistro);
-                    saida.append(tipoC + " ");
+                    saida.append(tipo + " " + nome + ";\n");
                 }
                 else{
                     saida.append("struct {\n");
@@ -191,6 +201,7 @@ public class JanderGeradorC extends JanderBaseVisitor<Void> {
                 }
             }
             else{
+                System.out.println("nome " + nome + " tipo " + tipoJ);
                 saida.append(nome);
                 if (tipoJ == TipoJander.LITERAL) {
                     saida.append("[" + LITERALSIZE + "]");
